@@ -114,16 +114,11 @@ class MMA8452 {
 }
 
 // Demo code
-function readAccel() {
-    local data = accel.read();
-    server.log(format("x = %i, y = %i, z = %i", data.x, data.y, data.z));
-    imp.wakeup(1, readAccel);
-}
-
 function readAccelG() {
     local data = accel.readG();
-    server.log(format("x = %.02f, y = %.02f, z = %.02f", data.x, data.y, data.z));
-    imp.wakeup(1, readAccelG);
+    //server.log(format("Device sent: x = %.02f, y = %.02f, z = %.02f", data.x, data.y, data.z));
+    agent.send("accelDataEvent", data);
+    imp.wakeup(2, readAccelG);
 }
 
 accel <- MMA8452(hardware.i2c89);
