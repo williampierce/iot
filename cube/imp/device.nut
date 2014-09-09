@@ -113,10 +113,11 @@ class MMA8452 {
     }
 }
 
-// Demo code
+// *** Upstream ***
+// Accelerometer sensor data
 function readAccelG() {
     local data = accel.readG();
-    //server.log(format("Device sent: x = %.02f, y = %.02f, z = %.02f", data.x, data.y, data.z));
+    // server.log(format("Device sent: x = %.02f, y = %.02f, z = %.02f", data.x, data.y, data.z));
     agent.send("accelDataEvent", data);
     imp.wakeup(2, readAccelG);
 }
@@ -124,4 +125,31 @@ function readAccelG() {
 accel <- MMA8452(hardware.i2c89);
 accel.wake();
 
+server.log(format("Hello, world!"));
+
 readAccelG();
+
+
+// *** Downstream ***
+// LED control
+const LED_COUNT = 3;
+local ledArray = array(LED_COUNT);
+
+ledArray[0] = hardware.pin2;
+ledArray[1] = hardware.pin5;
+ledArray[2] = hardware.pin7;
+
+ledArray[0].configure(DIGITAL_OUT);
+ledArray[1].configure(DIGITAL_OUT);
+ledArray[2].configure(DIGITAL_OUT);
+
+function ledControlEventHandler(ledSelectArray)
+{
+    for (local led=0; led<ledSelectArray.len(); led++)
+    {
+        server.log(format("Device received: led[%i] = %i", led, ledSelectArray[led]));
+        ledArray[led].write(ledSelectArray[led]);
+    }
+}
+
+agent.on("ledControlEvent", ledControlEventHandler);
