@@ -115,11 +115,11 @@ class MMA8452 {
 
 // *** Upstream ***
 // Accelerometer sensor data
-function readAccelG() {
+function ReadAccelG() {
     local data = accel.readG();
     // server.log(format("Device sent: x = %.02f, y = %.02f, z = %.02f", data.x, data.y, data.z));
     agent.send("accelDataEvent", data);
-    imp.wakeup(2, readAccelG);
+    imp.wakeup(2, ReadAccelG);
 }
 
 accel <- MMA8452(hardware.i2c89);
@@ -127,29 +127,29 @@ accel.wake();
 
 server.log(format("Hello, world!"));
 
-readAccelG();
+ReadAccelG();
 
 
 // *** Downstream ***
 // LED control
 const LED_COUNT = 3;
-local ledArray = array(LED_COUNT);
+local led_array = array(LED_COUNT);
 
-ledArray[0] = hardware.pin2;
-ledArray[1] = hardware.pin5;
-ledArray[2] = hardware.pin7;
+led_array[0] = hardware.pin2;
+led_array[1] = hardware.pin5;
+led_array[2] = hardware.pin7;
 
-ledArray[0].configure(DIGITAL_OUT);
-ledArray[1].configure(DIGITAL_OUT);
-ledArray[2].configure(DIGITAL_OUT);
+led_array[0].configure(DIGITAL_OUT);
+led_array[1].configure(DIGITAL_OUT);
+led_array[2].configure(DIGITAL_OUT);
 
-function ledControlEventHandler(ledSelectArray)
+function LedControlEventHandler(led_select_array)
 {
-    for (local led=0; led<ledSelectArray.len(); led++)
+    for (local led=0; led<led_select_array.len(); led++)
     {
-        server.log(format("Device received: led[%i] = %i", led, ledSelectArray[led]));
-        ledArray[led].write(ledSelectArray[led]);
+        server.log(format("Device received: led[%i] = %i", led, led_select_array[led]));
+        led_array[led].write(led_select_array[led]);
     }
 }
 
-agent.on("ledControlEvent", ledControlEventHandler);
+agent.on("ledControlEvent", LedControlEventHandler);
