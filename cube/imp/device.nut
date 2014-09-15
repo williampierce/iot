@@ -113,6 +113,8 @@ class MMA8452 {
     }
 }
 
+/******************** APPLICATION CODE ********************/
+
 // *** Upstream ***
 // Accelerometer sensor data
 function ReadAccelG() {
@@ -125,7 +127,7 @@ function ReadAccelG() {
 accel <- MMA8452(hardware.i2c89);
 accel.wake();
 
-server.log(format("Hello, world!"));
+server.log(format("Starting Cube Device..."));
 
 ReadAccelG();
 
