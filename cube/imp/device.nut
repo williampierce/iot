@@ -118,9 +118,13 @@ class MMA8452 {
 // *** Upstream ***
 // Accelerometer sensor data
 function ReadAccelG() {
-    local data = accel.readG();
+    local accel_data = accel.readG();
+    local accel_evt = {
+        dev_id = hardware.getdeviceid(),
+        accel  = accel_data
+    };
     // server.log(format("Device sent: x = %.02f, y = %.02f, z = %.02f", data.x, data.y, data.z));
-    agent.send("accelDataEvent", data);
+    agent.send("accelDataEvent", accel_evt);
     imp.wakeup(2, ReadAccelG);
 }
 

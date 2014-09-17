@@ -6,6 +6,8 @@ const CUBE_SERVER = "http://67.180.197.235:8765";
 
 // === Upstream ===
 // *** Device to Agent ***
+//     Events
+//         accel_evt: {dev_id, {x, y, z}}
 
 // Use the x/y/z accelerations from the device to determine which face is up.
 // Convention for numbering cube faces: If cube is in front of you and you're facing north, top=1, sides are 2..5,
@@ -41,10 +43,12 @@ function AccelDataToTopFace(accel)
     return face;
 }
 
-function AccelDataEventHandler(data)
+function AccelDataEventHandler(accel_evt)
 {
-    local face = AccelDataToTopFace(data);
-    server.log(format("Agent received: x = %.02f, y = %.02f, z = %.02f ==> face = %i", data.x, data.y, data.z, face));
+    local accel = accel_evt.accel;
+    local face  = AccelDataToTopFace(accel);
+    server.log(format("Evt from device %s: x = %.02f, y = %.02f, z = %.02f ==> face = %i",
+        accel_evt.dev_id, accel.x, accel.y, accel.z, face));
     
     if(IMP_ONLY)
         lightDeviceFace(face);
@@ -83,12 +87,16 @@ function processGetResponse(resp)
     }
 }
 
-function publishStateWithPost(face_number) 
+function publishStateWithPost(face_id)
 {    
     // Prepare the request with a JSON payload
-    local body = http.jsonencode({ face = face_number });
+    local agent_url = http.agenturl();
+    local agent_id  = split(agent_url, "/").top();
+    server.log("agent_id: " + agent_id);
+    
+    local body = http.jsonencode({agent = agent_id, face = face_id});
     local extraHeaders = {};
-    local request = http.post(CUBE_SERVER + "/report_state", extraHeaders, body);
+    local request = http.post(CUBE_SERVER + "/reportState", extraHeaders, body);
 
     request.sendasync(processPostResponse);
 }
@@ -119,6 +127,7 @@ function httpRequestHandler(request, response) {
     server.log(request.headers);
     //server.log(request.body);
     
+    // Todo: check path for "setState" request
     local state_table = http.jsondecode(request.body);
     foreach(key, value in state_table)
     {
