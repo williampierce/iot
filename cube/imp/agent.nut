@@ -63,57 +63,30 @@ device.on("accelDataEvent", AccelDataEventHandler);
 
 function processPostResponse(response) 
 {
-    server.log("Code: " + response.statuscode + ". Body: " + response.body);
-}
- 
-// Support for publishing
-function processGetResponse(resp)
-{
-    //server.log("Code: " + response.statuscode);
-    local err  = null;
-    local data = null;
-    
-    if (resp.statuscode != 200) {
-        err = format("%i - %s", resp.statuscode, resp.body);
-    } else {
-        try {        
-            //data = http.jsondecode(resp.body);
-            server.log("Response:");
-            server.log(resp.body);
-        } catch (ex) {
-            err = ex;
-            server.log("jsondecode error: " + ex);
-        }
-    }
+    server.log("HTTP Response. Code: " + response.statuscode + ", Body: " + response.body);
 }
 
-function publishStateWithPost(face_id)
+// Support for publishing
+function publishStateWithPost(faceId)
 {    
     // Prepare the request with a JSON payload
-    local agent_url = http.agenturl();
-    local agent_id  = split(agent_url, "/").top();
-    server.log("agent_id: " + agent_id);
+    local agentUrl   = http.agenturl();
+    local agentIdStr = split(agentUrl, "/").top();
     
-    local body = http.jsonencode({agent = agent_id, face = face_id});
+    local url          = CUBE_SERVER + "/reportState";
     local extraHeaders = {};
-    local request = http.post(CUBE_SERVER + "/reportState", extraHeaders, body);
+    local body         = http.jsonencode({agentId = agentIdStr, face = faceId});
+    
+    server.log("Posting HTTP request...");
+    server.log("    url:  " + url);
+    server.log("    body: " + body);
+    local request      = http.post(url, extraHeaders, body);
 
     request.sendasync(processPostResponse);
 }
 
-function publishStateWithGet(face)
-{
-    local extraHeaders = {};
-    local request = http.get(CUBE_SERVER + "/ping", extraHeaders);
-    
-    server.log("Sending http request...");
-    request.sendasync(processGetResponse);
-}
- 
-
 function publishDeviceOrientation(face)
 {
-    //publishStateWithGet(face);
     publishStateWithPost(face);
 }
 
@@ -121,22 +94,21 @@ function publishDeviceOrientation(face)
 // *** Server to Agent ***
 
 function httpRequestHandler(request, response) {
-    server.log(request.method);
-    server.log(request.path);
-    server.log(request.query);
-    server.log(request.headers);
-    //server.log(request.body);
+    server.log(format("HTTP %s request for %s received...", request.method, request.path));
+    // server.log(request.query);
+    // server.log(request.headers);
+    // server.log(request.body);
     
     // Todo: check path for "setState" request
-    local state_table = http.jsondecode(request.body);
-    foreach(key, value in state_table)
+    local bodyData = http.jsondecode(request.body);
+    foreach(key, value in bodyData)
     {
-        server.log("Entry: " + key + " -> " + value);
+        server.log("    body: " + key + " -> " + value);
     }
     
-    if("face" in state_table)
+    if("face" in bodyData)
     {
-        lightDeviceFace(state_table["face"].tointeger());
+        lightDeviceFace(bodyData["face"].tointeger());
     }
     
     // send a response back to whoever made the request

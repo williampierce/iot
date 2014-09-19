@@ -151,11 +151,13 @@ led_array[2].configure(DIGITAL_OUT);
 
 function LedControlEventHandler(led_select_array)
 {
+    local ledStr = "";
     for (local led=0; led<led_select_array.len(); led++)
     {
-        server.log(format("Device received: led[%i] = %i", led, led_select_array[led]));
         led_array[led].write(led_select_array[led]);
+        ledStr += format(" %i", led_select_array[led]);
     }
+    server.log("Device LED pattern: " + ledStr);
 }
 
 agent.on("ledControlEvent", LedControlEventHandler);
