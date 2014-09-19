@@ -1,54 +1,17 @@
 /******************** APPLICATION CODE ********************/
 const IMP_ONLY = 0;
-const ACCEL_THRESHOLD = 0.8
 const LED_COUNT = 3;
 const CUBE_SERVER = "http://67.180.197.235:8765";
 
 // === Upstream ===
 // *** Device to Agent ***
 //     Events
-//         accel_evt: {dev_id, {x, y, z}}
+//         topFaceEvent: {dev_id, face}
 
-// Use the x/y/z accelerations from the device to determine which face is up.
-// Convention for numbering cube faces: If cube is in front of you and you're facing north, top=1, sides are 2..5,
-// clockwise from north, and bottom=6. Unknown=0. If we orient the accelerometer so that the z axis points up, the
-// x axis points to our right, and the y axis points the way we are facing, then we have the following correspondence
-// between faces and x/y/z values:
-//     Face 1:  z =  1
-//          2:  y =  1
-//          3:  x =  1
-//          4:  y = -1
-//          5:  x = -1
-//          6:  z = -1
-function AccelDataToTopFace(accel)
+function topFaceEventHandler(topFaceEvent)
 {
-    local face = 0;
-
-    if (accel.len() != 3)
-        return face;
-    
-    if(accel.z >  ACCEL_THRESHOLD)
-        face = 1;
-    else if(accel.y >  ACCEL_THRESHOLD)
-        face = 2;
-    else if(accel.x >  ACCEL_THRESHOLD)
-        face = 3;
-    else if(accel.y < -ACCEL_THRESHOLD)
-        face = 4;
-    else if(accel.x < -ACCEL_THRESHOLD)
-        face = 5;
-    else if(accel.z < -ACCEL_THRESHOLD)
-        face = 6;
-    
-    return face;
-}
-
-function AccelDataEventHandler(accel_evt)
-{
-    local accel = accel_evt.accel;
-    local face  = AccelDataToTopFace(accel);
-    server.log(format("Evt from device %s: x = %.02f, y = %.02f, z = %.02f ==> face = %i",
-        accel_evt.dev_id, accel.x, accel.y, accel.z, face));
+    local face = topFaceEvent.face;
+    server.log(format("Evt from device %s: face = %i", topFaceEvent.dev_id, face));
     
     if(IMP_ONLY)
         lightDeviceFace(face);
@@ -56,7 +19,7 @@ function AccelDataEventHandler(accel_evt)
         publishDeviceOrientation(face);
 }
 
-device.on("accelDataEvent", AccelDataEventHandler);
+device.on("topFaceEvent", topFaceEventHandler);
 
 
 // *** Agent to Server ***

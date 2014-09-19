@@ -114,18 +114,71 @@ class MMA8452 {
 }
 
 /******************** APPLICATION CODE ********************/
+const ACCEL_THRESHOLD = 0.8
 
 // *** Upstream ***
-// Accelerometer sensor data
-function ReadAccelG() {
-    local accel_data = accel.readG();
-    local accel_evt = {
-        dev_id = hardware.getdeviceid(),
-        accel  = accel_data
-    };
-    // server.log(format("Device sent: x = %.02f, y = %.02f, z = %.02f", data.x, data.y, data.z));
-    agent.send("accelDataEvent", accel_evt);
-    imp.wakeup(2, ReadAccelG);
+
+// Use the x/y/z accelerations from the device to determine which face is up.
+// Convention for numbering cube faces: If cube is in front of you and you're facing north, top=1, sides are 2..5,
+// clockwise from north, and bottom=6. Unknown=0. If we orient the accelerometer so that the z axis points up, the
+// x axis points to our right, and the y axis points the way we are facing, then we have the following correspondence
+// between faces and x/y/z values:
+//     Face 1:  z =  1
+//          2:  y =  1
+//          3:  x =  1
+//          4:  y = -1
+//          5:  x = -1
+//          6:  z = -1
+function AccelDataToTopFace(accel)
+{
+    local face = 0;
+
+    if (accel.len() != 3)
+        return face;
+    
+    if(accel.z >  ACCEL_THRESHOLD)
+        face = 1;
+    else if(accel.y >  ACCEL_THRESHOLD)
+        face = 2;
+    else if(accel.x >  ACCEL_THRESHOLD)
+        face = 3;
+    else if(accel.y < -ACCEL_THRESHOLD)
+        face = 4;
+    else if(accel.x < -ACCEL_THRESHOLD)
+        face = 5;
+    else if(accel.z < -ACCEL_THRESHOLD)
+        face = 6;
+    
+    return face;
+}
+
+// Heartbeat function to check sensors and send update as necessary
+local g_lastFace = 0;
+local g_devId    = hardware.getdeviceid();
+
+function heartBeat() {
+    try
+    {
+        local accel_data = accel.readG();
+        local face       = AccelDataToTopFace(accel_data);
+    
+        if(face != g_lastFace)
+        {
+            local topFaceEvent = {
+                dev_id = g_devId,
+                face   = face
+            };
+        
+            agent.send("topFaceEvent", topFaceEvent);
+            g_lastFace = face;
+        }
+    }
+    catch(error)
+    {
+        // We occasionally see blob.writeString() errors from readG().
+        server.log("Skipping update on exception: " + error);
+    }
+    imp.wakeup(2, heartBeat);
 }
 
 accel <- MMA8452(hardware.i2c89);
@@ -133,7 +186,7 @@ accel.wake();
 
 server.log(format("Starting Cube Device..."));
 
-ReadAccelG();
+heartBeat();
 
 
 // *** Downstream ***
